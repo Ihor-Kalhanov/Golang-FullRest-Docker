@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Ihor-Kalhanov/Golang-FullRest-Docker/controllers"
 	"github.com/Ihor-Kalhanov/Golang-FullRest-Docker/data"
 	"github.com/gorilla/mux"
 	"log"
@@ -13,6 +14,31 @@ type Book struct {
 	Name   string `json:"name"`
 	Author string `json:"author"`
 }
+
+//// User is the data type for user object
+//type User struct {
+//	ID        string    `json:"id" sql:"id"`
+//	Email     string    `json:"email" validate:"required" sql:"email"`
+//	Password  string    `json:"password" validate:"required" sql:"password"`
+//	Username  string    `json:"username" sql:"username"`
+//	TokenHash string    `json:"tokenhash" sql:"tokenhash"`
+//	CreatedAt time.Time `json:"createdat" sql:"createdat"`
+//	UpdatedAt time.Time `json:"updatedat" sql:"updatedat"`
+//}
+//
+//// schema for user table
+//const schema = `
+//		create table if not exists users (
+//			id varchar(36) not null,
+//			email varchar(225) not null unique,
+//			username varchar(225),
+//			password varchar(225) not null,
+//			tokenhash varchar(15) not null,
+//			createdat timestamp not null,
+//			updatedat timestamp not null,
+//			primary key (id)
+//		);
+//`
 
 func main() {
 	HandleRequests()
@@ -25,6 +51,10 @@ func HandleRequests() {
 	router.HandleFunc("/books/", GetAllBooks).Methods("GET")
 
 	router.HandleFunc("/book/create/", CreateBook).Methods("POST")
+
+	router.HandleFunc("/register/", controllers.Register).Methods("POST")
+
+	router.HandleFunc("/signin/", controllers.Signin).Methods("POST")
 
 	log.Fatal(http.ListenAndServe(":8000", router))
 

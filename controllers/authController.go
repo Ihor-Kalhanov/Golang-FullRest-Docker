@@ -40,6 +40,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 func Signin(w http.ResponseWriter, r *http.Request) {
 	// Parse and decode the request body into a new `Credentials` instance
 	creds := &models.User{}
+	fmt.Println("1: ", creds)
 	err := json.NewDecoder(r.Body).Decode(creds)
 	if err != nil {
 		// If there is something wrong with the request body, return a 400 status
@@ -55,6 +56,7 @@ func Signin(w http.ResponseWriter, r *http.Request) {
 	}
 	// We create another instance of `Credentials` to store the credentials we get from the database
 	storedCreds := &models.User{}
+	fmt.Println("2: ", storedCreds)
 	// Store the obtained password in `storedCreds`
 	err = result.Scan(&storedCreds.Password)
 	if err != nil {
@@ -97,12 +99,21 @@ func Signin(w http.ResponseWriter, r *http.Request) {
 			Value:   tokenString,
 			Expires: expirationTime,
 		})
-
+	fmt.Println("3: ", claims)
 	w.Write([]byte(fmt.Sprintf("Hello, %s", claims.Username)))
 	// If we reach this point, that means the users password was correct, and that they are authorized
 	// The default 200 status is sent
 }
 func Home(w http.ResponseWriter, r *http.Request) {
+
+	creds := &models.User{}
+	err := json.NewDecoder(r.Body).Decode(creds)
+	if err != nil {
+		// If there is something wrong with the request body, return a 400 status
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	cookie, err := r.Cookie("token")
 	if err != nil {
 		if err == http.ErrNoCookie {

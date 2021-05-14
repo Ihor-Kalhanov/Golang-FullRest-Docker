@@ -56,6 +56,8 @@ func HandleRequests() {
 
 	router.HandleFunc("/signin/", controllers.Signin).Methods("POST")
 
+	router.HandleFunc("/home/", controllers.Home)
+
 	log.Fatal(http.ListenAndServe(":8000", router))
 
 }

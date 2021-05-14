@@ -3,11 +3,16 @@ package controllers
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"github.com/Ihor-Kalhanov/Golang-FullRest-Docker/data"
 	"github.com/Ihor-Kalhanov/Golang-FullRest-Docker/model"
+	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
+	"time"
 )
+
+var jwtKey = []byte("secret_key")
 
 func Register(w http.ResponseWriter, r *http.Request) {
 	// Parse and decode the request body into a new `Credentials` instance
@@ -29,6 +34,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// We reach this point if the credentials we correctly stored in the database, and the default status of 200 is sent back
+	w.Write([]byte(fmt.Sprintf("Hello, %s", creds.Username+"Register succes")))
 }
 
 func Signin(w http.ResponseWriter, r *http.Request) {
@@ -55,6 +61,7 @@ func Signin(w http.ResponseWriter, r *http.Request) {
 		// If an entry with the username does not exist, send an "Unauthorized"(401) status
 		if err == sql.ErrNoRows {
 			w.WriteHeader(http.StatusUnauthorized)
+			w.Header().Set("Content-Type", "application/json")
 			return
 		}
 		// If the error is of any other type, send a 500 status
@@ -68,6 +75,67 @@ func Signin(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 	}
 
+	expirationTime := time.Now().Add(time.Minute * 5)
+
+	claims := &models.Claims{
+		Username: creds.Username,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: expirationTime.Unix(),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString(jwtKey)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	http.SetCookie(w,
+		&http.Cookie{
+			Name:    "token",
+			Value:   tokenString,
+			Expires: expirationTime,
+		})
+
+	w.Write([]byte(fmt.Sprintf("Hello, %s", claims.Username)))
 	// If we reach this point, that means the users password was correct, and that they are authorized
 	// The default 200 status is sent
+}
+func Home(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("token")
+	if err != nil {
+		if err == http.ErrNoCookie {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	tokenStr := cookie.Value
+
+	claims := &models.Claims{}
+
+	tkn, err := jwt.ParseWithClaims(tokenStr, claims,
+		func(t *jwt.Token) (interface{}, error) {
+			return jwtKey, nil
+		})
+
+	if err != nil {
+		if err == jwt.ErrSignatureInvalid {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if !tkn.Valid {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	w.Write([]byte(fmt.Sprintf("Hello, %s", claims.Username)))
+
 }
